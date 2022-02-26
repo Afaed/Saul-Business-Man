@@ -1,17 +1,17 @@
 //Index.js//
 const mysql = require("mysql")
 var inquirer = require('inquirer')
-const fs = require('fs')
 const promisemysql = require("promise-mysql")
-const { values } = require("lodash")
-const { throwError } = require("rxjs")
+require('dotenv').config()
+const { title } = require("process")
 
 const connectionProperties = {
     host: "localhost",
-    port: 3001,
+    port: 3306,
     user: "root",
-    password: "password",
-    database: "employees_DB"
+    password: "test123",
+    database: "Employee_tracker",
+    insecureAuth: true
 }
 //Make Connections//
 
@@ -29,7 +29,7 @@ connection.connect((err) => {
 function menu() {
     inquirer
         .prompt({
-            type: "action",
+            type: "list",
             name: "choices",
             message: "Welcome! This is the menu. Please pick an option.",
             choices: [
@@ -40,16 +40,15 @@ function menu() {
                 "Add a role",
                 "Add an employee",
                 "Update an employee role",
-                "Update Manager",
                 "Delete employee",
                 "Delete role",
                 "Delete department",
-                "View employee Salary"
             ]
         })
         .then((answer) => {
-            switch (answer.aciton) {
+            switch (answer.choices) {
                 case "View all departments":
+                    console.log("Working")
                     viewDep();
                     break;
                 case "View all roles":
@@ -59,19 +58,16 @@ function menu() {
                     viewEmpl();
                     break;
                 case "Add a department":
-                    addDep();
+                    addDept();
                     break;
                 case "Add an employee":
-                    addDep();
+                    addEmpl();
                     break;
                 case "Add a role":
                     addRole();
                     break;
                 case "Update an employee role":
                     updateEmpl();
-                    break;
-                case "Update Manager":
-                    updateManager();
                     break;
                 case "Delete employee":
                     deleteEmpl();
@@ -80,76 +76,462 @@ function menu() {
                     deleteRole();
                     break;
                 case "Delete department":
-                    deleteDep();
+                    deleteDept();
+                    break;
+                case "End":
+                    connection.end();
                     break;
             }
         })
 }
 
 function viewDep() {
-    let query = "SELECT e.id, e.first_name, e.lastname, e.role_id, e.salary, e.department,"
+    let query = "SELECT departments.id, departments.dept_name FROM Employee_tracker.departments";
 
-    connection.query(query, function(err, res) {
-        if(err) return err;
-        console.log("Sorry, try again!");
+    connection.query(query, function (err, res) {
+        if (err) return err;
+        console.log("Here are the departments");
 
         console.table(res);
         menu();
     })
 }
+//SELECT SELECT e.id, employees.first_name, employees.lastname, employees.role_id, employees.department, concat(employees.first_name, ' ' ,  employees.last_name) AS Employee FROM employee e LEFT JOIN employee m INNER JOIN role ON employees.role_id = role.id INNER JOIN department ON roles.department_id = department.id ORDER BY ID ASC
 
 function viewRoles() {
 
-    let query = "SELECT roles.id, roles.title, roles.salary, roles.department AS role "
-}
+    let query = "SELECT roles.id, roles.title, roles.salary, roles.department_id FROM Employee_tracker.roles"
 
-function viewEmpl() {
-    let query = "SELECT e.id, e.first_name, e.lastname, e.role_id, e.salary, e.department, concat(m.first_name, ' ' ,  m.last_name) AS manager FROM employee e LEFT JOIN employee m ON e.manager_id = m.id INNER JOIN role ON e.role_id = role.id INNER JOIN department ON role.department_id = department.id ORDER BY ID ASC";
-
-    connection.query(query, function(err, res) {
-        if(err) return err;
-        console.log("Sorry, try again!");
+    connection.query(query, function (err, res) {
+        if (err) return err;
+        console.log("Here's the roles! By salary even!");
 
         console.table(res);
         menu();
     })
 }
 
-function addDep() {
-    inquirer.prompt({
-      name: "department",
-      type: "input",
-      message: "Add a department please."
-    }
-    )
-    .then(answers)
-}
+function viewEmpl() {
+    let query = "SELECT employees.id, employees.first_name, employees.last_name, employees.role_id, employees.department_id FROM Employee_tracker.employees;";
 
-function addRole() { }
+    connection.query(query, function (err, res) {
+        if (err) return err;
+        console.log("Here are the employees!");
 
-function addEmpl() {
-    deptQuery = value;
-    for (i =0; i < values.length; i++){
-        deptArr.push(value[i].name)
-    }
-}
-
-function updateEmpl() { }
-
-function updateManager() { }
-
-function deleteEmpl() {
-    let employeeArr = [];
-
-    promisemysql.createConnection(connectionProperties).then((conn) => {
-        for (i = 0; i < values.length; i++){
-            employeeArr.push(employees[i].employee)
-        }
+        console.table(res);
+        menu();
     })
 }
 
-function deleteRole() { }
+function addEmpl() {
+    let roleArr = [];
+    let managerArr = [];
 
-function deleteDep() { }
+    //make connection using promise-sql
+    promisemysql.createConnection(connectionProperties)
+        .then((conn) => {
+            return Promise.all([
+                conn.query('SELECT id, title FROM roles ORDER BY title ASC'),
+                conn.query("SELECT employee.id, employee.first_name, employee.last_name AS Employee FROM employees ORDER BY EMPLOYEE ASC")
+            ])
+        }).then(([roles, managers]) => {
+            for (i = 0; i < roles.length; i++) {
+                roleArr.push(roles[i].title);
+            }
 
-module.exports = schema.sql;
+            // place all managers in array
+            for (i = 0; i < managers.length; i++) {
+                managerArr.push(managers[i].Employee);
+            }
+
+            return Promise.all([roles]);
+        }).then(([roles]) => {
+            
+            inquirer.prompt({
+                name: "firstName",
+                type: "input",
+                message: "What is the employees name?",
+                //check to make sure its not blank
+                validate: function (input) {
+                    if (input === "") {
+                        console.log("Please insert a name.")
+                        return false
+                    }
+                    else { return true }
+                }
+            },
+                {
+                    name: "lastName",
+                    type: "input",
+                    message: "What is the employee's Last name?",
+                    validate: function (input) {
+                        if (input === "") {
+                            console.log("Please insert a name.")
+                            return false
+                        }
+                        else { return true }
+                    }
+                },
+                {
+                    name: "role",
+                    type: "list",
+                    message: "What is this employee's role?",
+                    choices: roles,
+                    validate: function (input) {
+                        if (input === "") {
+                            console.log("What is their role? They can not have no role.")
+                        } else { return true }
+                    }
+                },
+                connection.query(`INSERT INTO employees (first_name, last_name, role_id)
+                VALUES ("${answer.firstName}", "${answer.lastName}", ${role_id})`, (err, res) => {
+                    if (err) return err;
+
+                    // Confirm employee has been added
+                    console.log(`\n EMPLOYEE ${answer.firstName} ${answer.lastName} ADDED...\n `);
+                    mainMenu();
+                })
+            )
+        }
+        )
+}
+
+function addRole() {
+
+    promisemysql.createConnection(connectionProperties)
+        .then((conn) => {
+            return conn.query(`SELECT id, dept_name FROM departments ORDER BY dept_name ASC`);
+        }).then((departments = dept_name) => {
+
+            inquirer.prompt([
+                //Role prompts for title, dept, salary 
+                {
+                    name: "title",
+                    type: "input",
+                    message: "What is the Employees Role?",
+                    validate: title => {
+                        if (title) {
+                            return true;
+                        } else {
+                            console.log('Please enter a job role');
+                            return false;
+                        }
+                    }
+                },
+                {
+                    name: "dept",
+                    type: "list",
+                    message: "What department is this role under?",
+                    choices: departments,
+                    validate: dept => {
+                        if (dept) {
+                            return true;
+                        } else {
+                            console.log('Please enter a department');
+                            return false;
+                        }
+                    }
+                },
+                {
+                    type: 'input',
+                    name: 'salary',
+                    message: "What is the salary of this role?",
+                    validate: salary => {
+                        if ((salary)) {
+                            return true;
+                        } else {
+                            console.log('Please enter a salary');
+                            return false;
+                        }
+                    }
+                },
+            ]).then((answer) => {
+                //create a department id variable to connect it to the department database
+                let deptId;
+
+                //for loop to establish it.
+
+                for (i = 0; i < departments.length; i++) {
+                    if (answer.dept = departments[i].id) {
+                        deptId = departments[i].id
+                    }
+                }
+                //now we need to connect it to the table!
+                connection.query(
+                    `INSERT INTO roles (title, salary, department_id) VALUES ("${answer.title}", "${answer.salary}", "${answer.dept}")`
+                )
+                console.log(` \n ROLE ${answer.title} added \n`);
+                
+                menu()
+
+            })
+        })
+};
+
+function addDept() {
+    inquirer.prompt([
+        //prompts department name
+        {
+            type: "input",
+            name: "deptName",
+            message: "What is the department name?",
+            validate: deptName => {
+                if (deptName) {
+                    return true;
+                } else {
+                    console.log('Please enter a department');
+                    return false;
+                }
+            }
+        }
+    ])
+        .then((answer) => {
+            connection.query(
+                `INSERT INTO departments (dept_name) VALUES ("${answer.deptName}")`,
+                (err) => {
+                    if (err) return err;
+                    console.log("\n Department added! \n")
+                        ;
+                }
+            )
+            menu();
+        })
+}
+
+function updateEmpl() {
+    let roleArr = [];
+    let employeeArr = [];
+
+    promisemysql.createConnection(connectionProperties)
+        .then((conn) => {
+            return Promise.all([
+                conn.query(`SELECT id, title FROM roles ORDER BY title ASC`),
+                conn.query("SELECT employees.id, concat(employees.first_name, ' ', employees.last_name) AS Employee FROM employees ORDER BY Employee ASC")
+            ]);
+        }).then(([role, employee]) => {
+            for (i = 0; i < role.length; i++) {
+                roleArr.push(role[i].title);
+            }
+            for (i = 0; i < employee.length; i++) {
+                employee.push(employee[i].Employee);
+            }
+
+            return Promise.all(([role, employee]) => {
+                inquirer.prompt([
+                    {
+                        name: "employee",
+                        type: "list",
+                        message: "Who do you want to edit?",
+                        choices: employeeArr
+                    },
+                    {
+                        name: "roles",
+                        type: "choices",
+                        message: "What is their new role?",
+                        choices: roleArr
+                    },
+                ]).then((answer) => {
+                    let roleID;
+                    let employeeID;
+
+                    for (i = 0; i < role.length; i++) {
+                        if (answer.role === role[i].title) {
+                            roleID === role[i].id;
+                        }
+                    }
+                    for (i = 0; i < employee.length; i++) {
+                        if (answer.employee === employee[i].employee) {
+                            employeeID === employee[i].id;
+                        }
+                    }
+                })
+                    .then((answer) => {
+                        connection.query(
+                            `INSERT INTO employees(role_id) VALUES ("${answer.roleID}")`,
+                            (err, res) => {
+                                if (err) return err;
+                                console.log("\n Updated EMployee! \n")
+                                menu();
+                            }
+                        )
+                    })
+            });
+        })
+}
+
+
+function deleteEmpl() {
+
+    let employeeArr = [];
+
+    promisemysql.createConnection(connectionProperties)
+        .then((conn) => {
+            return Promise.all([
+                conn.query(`SELECT id, title FROM roles ORDER BY title ASC`),
+                conn.query("SELECT employees.id, concat(employees.first_name, ' ', employees.last_name) AS Employee FROM employees ORDER BY Employee ASC")
+            ]);
+        }).then(([role, employee]) => {
+            for (i = 0; i < role.length; i++) {
+                roleArr.push(roles[i].title);
+            }
+            for (i = 0; i < employee.length; i++) {
+                employee.push(employee[i].Employee);
+            }
+
+            return Promise.all(([role, employee]) => {
+                inquirer.prompt([
+                    {
+                        name: "employee",
+                        type: "list",
+                        message: "Who do you want to delete?",
+                        choices: employeeArr
+                    },
+                    {
+                        name: "confirmation",
+                        type: "list",
+                        message: "Are you sure you want to delte this employee?",
+                        choices: [
+                            "Yes", "No"
+                        ]
+
+                    }]).then((answer) => {
+                        if (answer.confirmation === "Yes") {
+                            let employeeID
+
+                            for (i = 0; i < employee.length; i++) {
+                                if (answer.employee === employee[i].employee) {
+                                    employeeID === employee[i].id;
+                                }
+                            }
+
+                            connection.query(`DELETE FROM employee WHERE id=${employeeID};`), (err, res) => {
+                                if (err) return err;
+                                //checks for deletion//
+                                console.log(`\n Employee '!${answer.employee}' deleted!`)
+                                menu();
+                            }
+                        }
+                        else {
+                            console.log(`\n Employee '${answer.employee}' was not deleted!`)
+                            menu();
+                        }
+
+                    })
+
+            })
+        }
+        )
+};
+
+function deleteRole() {
+
+    let roleArr = [];
+
+    promisemysql.createConnection(connectionProperties)
+        .then((conn) => {
+            return Promise.all([
+                conn.query(`SELECT id, title, salary FROM roles ORDER BY title ASC`),
+            ]);
+        }).then(([role]) => {
+            for (i = 0; i < role.length; i++) {
+                roleArr.push(roles[i].title);
+            }
+
+            return Promise.all(([role]) => {
+                inquirer.prompt([
+                    {
+                        name: "role",
+                        type: "list",
+                        message: "What role do you want to remove?",
+                        choices: roleArr
+                    },
+                    {
+                        name: "confirmation",
+                        type: "list",
+                        message: "Are you sure you want to delte this role?",
+                        choices: [
+                            "Yes", "No"
+                        ]
+
+                    }]).then((answer) => {
+                        if (answer.confirmation === "Yes") {
+                            let roleID
+
+                            for (i = 0; i < employee.length; i++) {
+                                if (answer.role === role[i].roles) {
+                                    roleID === role[i].id;
+                                }
+                            }
+
+                            connection.query(`DELETE FROM roles WHERE id=${roleID};`), (err, res) => {
+                                if (err) return err;
+                                //checks for deletion//
+                                console.log(`\n Role '!${answer.employee}' deleted!`)
+                                menu();
+                            }
+                        }
+                        else {
+                            console.log(`\n Role '${answer.role}' was not deleted!`)
+                            menu();
+                        }
+
+                    })
+            });
+        })
+}
+
+function deleteDept() {
+    let deptArr = [];
+
+    promisemysql.createConnection(connectionProperties)
+        .then((conn) => {
+            return Promise.all([
+                conn.query(`SELECT id, dept_name FROM departments ORDER BY id ASC`),
+            ]);
+        }).then(([dept]) => {
+            for (i = 0; i < role.length; i++) {
+                deptArr.push(dept[i].dept_name);
+            }
+
+            return Promise.all(([role]) => {
+                inquirer.prompt([
+                    {
+                        name: "dept",
+                        type: "list",
+                        message: "What department do you want to remove?",
+                        choices: deptArr
+                    },
+                    {
+                        name: "confirmation",
+                        type: "list",
+                        message: "Are you sure you want to delete this department?",
+                        choices: [
+                            "Yes", "No"
+                        ]
+
+                    }]).then((answer) => {
+                        if (answer.confirmation === "Yes") {
+                            let deptID
+
+                            for (i = 0; i < employee.length; i++) {
+                                if (answer.dept === dept[i].roles) {
+                                    deptID === dept[i].id;
+                                }
+                            }
+
+                            connection.query(`DELETE FROM roles WHERE id=${roleID};`), (err, res) => {
+                                if (err) return err;
+                                //checks for deletion//
+                                console.log(`\n Role '!${answer.dept}' deleted!`)
+                                menu();
+                            }
+                        }
+                        else {
+                            console.log(`\n Role '${answer.dept}' was not deleted!`)
+                            menu();
+                        }
+
+                    })
+            });
+        })
+}
