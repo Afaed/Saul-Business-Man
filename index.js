@@ -424,18 +424,12 @@ function deleteEmpl() {
 };
 
 deleteRole = () => {
-    
-    const roles = promisemysql.createConnection(connectionProperties)
-    .then((conn) => {
-        return Promise.all([
-            conn.query(`SELECT id, title FROM roles ORDER BY id ASC`),
-        ]);
-    }).then(([role]) => {
-        for (i = 0; i < role.length; i++) {
-            deptArr.push(dept[i].dept_name);
-        }
+    const roleSql = `SELECT * FROM roles`; 
   
-      const role = data.map(({ id, title }) => ({ name: title, value: id }));
+    connection.promise().query(roleSql, (err, data) => {
+      if (err) throw err; 
+  
+      const role = data.map(({ title, id }) => ({ name: title, value: id }));
   
       inquirer.prompt([
         {
@@ -447,13 +441,13 @@ deleteRole = () => {
       ])
         .then(roleChoice => {
           const role = roleChoice.role;
-          const sql = `DELETE FROM role WHERE id = ?`;
+          const sql = `DELETE FROM roles WHERE id = ?`;
   
-          connection.query(sql, role, (err, result) => {
+          connection.query(sql, role, (err) => {
             if (err) throw err;
             console.log("Successfully deleted!"); 
   
-            viewRoles();
+            menu()
         });
       });
     });
