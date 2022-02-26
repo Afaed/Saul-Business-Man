@@ -423,61 +423,41 @@ function deleteEmpl() {
         )
 };
 
-function deleteRole() {
-const roleSql = `SELECT * FROM roles`;
-connection.promisemysql().query(roleSql, (err, data)) => 
-    promisemysql.createConnection(connectionProperties)
-        .then((conn) => {
-            return Promise.all([
-                conn.query(`SELECT id, title, salary FROM roles ORDER BY title ASC`),
-            ]);
-        }).then(([role]) => {
-            for (i = 0; i < role.length; i++) {
-                role.push(role[i].title);
-            }
-
-            return Promise.all(([role]) => {
-                inquirer.prompt([
-                    {
-                        name: "role",
-                        type: "list",
-                        message: "What role do you want to remove?",
-                        choices: role
-                    },
-                    {
-                        name: "confirmation",
-                        type: "list",
-                        message: "Are you sure you want to delte this role?",
-                        choices: [
-                            "Yes", "No"
-                        ]
-
-                    }]).then((answer) => {
-                        if (answer.confirmation === "Yes") {
-                            let roleID
-
-                            for (i = 0; i < employee.length; i++) {
-                                if (answer.role === role[i].roles) {
-                                    roleID === role[i].id;
-                                }
-                            }
-
-                            connection.query(`DELETE FROM roles WHERE id=${roleID};`), (err, res) => {
-                                if (err) return err;
-                                //checks for deletion//
-                                console.log(`\n Role '!${answer.employee}' deleted!`)
-                                menu();
-                            }
-                        }
-                        else {
-                            console.log(`\n Role '${answer.role}' was not deleted!`)
-                            menu();
-                        }
-
-                    })
-            });
-        })
-}
+deleteRole = () => {
+    
+    const roles = promisemysql.createConnection(connectionProperties)
+    .then((conn) => {
+        return Promise.all([
+            conn.query(`SELECT id, title FROM roles ORDER BY id ASC`),
+        ]);
+    }).then(([role]) => {
+        for (i = 0; i < role.length; i++) {
+            deptArr.push(dept[i].dept_name);
+        }
+  
+      const role = data.map(({ id, title }) => ({ name: title, value: id }));
+  
+      inquirer.prompt([
+        {
+          type: 'list', 
+          name: 'role',
+          message: "What role do you want to delete?",
+          choices: role
+        }
+      ])
+        .then(roleChoice => {
+          const role = roleChoice.role;
+          const sql = `DELETE FROM role WHERE id = ?`;
+  
+          connection.query(sql, role, (err, result) => {
+            if (err) throw err;
+            console.log("Successfully deleted!"); 
+  
+            viewRoles();
+        });
+      });
+    });
+  };
 
 function deleteDept() {
     let deptArr = [];
