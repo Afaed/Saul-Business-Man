@@ -424,9 +424,8 @@ function deleteEmpl() {
 };
 
 function deleteRole() {
-
-    let roleArr = [];
-
+const roleSql = `SELECT * FROM roles`;
+connection.promisemysql().query(roleSql, (err, data)) => 
     promisemysql.createConnection(connectionProperties)
         .then((conn) => {
             return Promise.all([
@@ -434,7 +433,7 @@ function deleteRole() {
             ]);
         }).then(([role]) => {
             for (i = 0; i < role.length; i++) {
-                roleArr.push(roles[i].title);
+                role.push(role[i].title);
             }
 
             return Promise.all(([role]) => {
@@ -443,7 +442,7 @@ function deleteRole() {
                         name: "role",
                         type: "list",
                         message: "What role do you want to remove?",
-                        choices: roleArr
+                        choices: role
                     },
                     {
                         name: "confirmation",
