@@ -124,8 +124,8 @@ function viewEmpl() {
 }
 
 function addEmpl() {
-    let roleArr = [];
-    let managerArr = [];
+    let roleArr = "SELECT employees.id, employees.first_name, employees.last_name, employees.role_id, employees.department_id FROM Employee_tracker.employees";
+
 
     //make connection using promise-sql
     promisemysql.createConnection(connectionProperties)
@@ -201,7 +201,7 @@ function addRole() {
     promisemysql.createConnection(connectionProperties)
         .then((conn) => {
             return conn.query(`SELECT id, dept_name FROM departments ORDER BY dept_name ASC`);
-        }).then((departments = dept_name) => {
+        }).then((departments) => {
 
             inquirer.prompt([
                 //Role prompts for title, dept, salary 
@@ -247,7 +247,6 @@ function addRole() {
                 },
             ]).then((answer) => {
                 //create a department id variable to connect it to the department database
-                let deptId;
 
                 //for loop to establish it.
 
@@ -425,7 +424,7 @@ function deleteEmpl() {
 
 function deleteRole() {
 const roleSql = `SELECT * FROM roles`;
-connection.promisemysql().query(roleSql, (err, data)) => 
+connection.promisemysql().query(roleSql, (err, data) => 
     promisemysql.createConnection(connectionProperties)
         .then((conn) => {
             return Promise.all([
@@ -477,7 +476,7 @@ connection.promisemysql().query(roleSql, (err, data)) =>
                     })
             });
         })
-}
+)}
 
 function deleteDept() {
     let deptArr = [];
