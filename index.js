@@ -190,9 +190,10 @@ function addRole() {
 
     promisemysql.createConnection(connectionProperties)
         .then((conn) => {
-            return conn.query(`SELECT id, dept_name FROM departments ORDER BY dept_name ASC`);
-        }).then((departments) => {
-
+            return conn.promise().query(`SELECT id, dept_name FROM departments ORDER BY dept_name ASC`);
+        }).then(([rows]) => {
+            console.log(rows)
+            let departmentArray = rows;
             inquirer.prompt([
                 //Role prompts for title, dept, salary 
                 {
@@ -212,7 +213,10 @@ function addRole() {
                     name: "dept",
                     type: "list",
                     message: "What department is this role under?",
-                    choices: departments,
+                    choices: departmentArray.map(({id, dept_name}) => ({
+                        name: dept_name,
+                        value: id
+                    })),
                     validate: dept => {
                         if (dept) {
                             return true;
@@ -333,7 +337,7 @@ function roleArray(employeeChoices) {
 }
 
 function promptEmployeeRole(employeeChoices, roleChoices) {
-
+employeeChoices = "SELECT "
     inquirer
         .prompt([
             {
